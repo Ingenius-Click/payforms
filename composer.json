@@ -1,0 +1,42 @@
+{
+    "name": "ingenius/payforms",
+    "description": "Ingenius Payforms Package",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.0.1",
+    "authors": [
+        {
+            "name": "Ingenius Team",
+            "email": "info@ingeniusclick.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "ingenius/core": "*",
+        "ingenius/coins": "*",
+        "ingenius/auth": "*"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ingenius\\Payforms\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ingenius\\Payforms\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ingenius\\Payforms\\Providers\\PayformsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
