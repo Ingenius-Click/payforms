@@ -13,7 +13,12 @@ class ListPayformsFeature implements FeatureInterface
 
     public function getName(): string
     {
-        return 'List payforms';
+        return __('List payforms');
+    }
+
+    public function getGroup(): string
+    {
+        return __('Payforms');
     }
 
     public function getPackage(): string

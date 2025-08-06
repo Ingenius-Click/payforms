@@ -13,7 +13,12 @@ class ManualStatusChangeFeature implements FeatureInterface
 
     public function getName(): string
     {
-        return 'Manual status change';
+        return __('Manual status change');
+    }
+
+    public function getGroup(): string
+    {
+        return __('Payforms');
     }
 
     public function getPackage(): string

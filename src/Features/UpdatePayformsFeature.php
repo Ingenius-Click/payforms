@@ -13,7 +13,12 @@ class UpdatePayformsFeature implements FeatureInterface
 
     public function getName(): string
     {
-        return 'Update payforms';
+        return __('Update payforms');
+    }
+
+    public function getGroup(): string
+    {
+        return __('Payforms');
     }
 
     public function getPackage(): string

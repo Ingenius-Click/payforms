@@ -13,7 +13,12 @@ class CashPayformFeature implements FeatureInterface
 
     public function getName(): string
     {
-        return 'Cash payform';
+        return __('Cash payform');
+    }
+
+    public function getGroup(): string
+    {
+        return __('Payforms');
     }
 
     public function getPackage(): string
