@@ -16,7 +16,7 @@ class PaidOrderStatus implements OrderStatusInterface
 
     public function getName(): string
     {
-        return 'Paid';
+        return __('Paid');
     }
 
     public function getDescription(): string

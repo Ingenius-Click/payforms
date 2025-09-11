@@ -88,6 +88,8 @@ class PayformsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register translations
+        $this->registerTranslations();
         // Register migrations with the registry
         $this->registerMigrations(__DIR__ . '/../../database/migrations', 'payforms');
 
@@ -97,8 +99,16 @@ class PayformsServiceProvider extends ServiceProvider
             $this->registerTenantMigrations($tenantMigrationsPath, 'payforms');
         }
 
-        // Load views
-        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'payforms');
+        // Load views only if they exist
+        $viewsPath = __DIR__ . '/../../resources/views';
+        if (is_dir($viewsPath) && count(glob($viewsPath . '/*.blade.php')) > 0) {
+            $this->loadViewsFrom($viewsPath, 'payforms');
+            
+            // Publish views only if they exist
+            $this->publishes([
+                $viewsPath => resource_path('views/vendor/payforms'),
+            ], 'payforms-views');
+        }
 
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
@@ -107,11 +117,6 @@ class PayformsServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../../config/payforms.php' => config_path('payforms.php'),
         ], 'payforms-config');
-
-        // Publish views
-        $this->publishes([
-            __DIR__ . '/../../resources/views' => resource_path('views/vendor/payforms'),
-        ], 'payforms-views');
 
         // Publish migrations
         $this->publishes([
@@ -126,6 +131,15 @@ class PayformsServiceProvider extends ServiceProvider
 
         // Register tenant initializer
         $this->registerTenantInitializer();
+    }
+
+    /**
+     * Register translations.
+     */
+    protected function registerTranslations(): void
+    {
+        $this->loadTranslationsFrom(__DIR__ . '/../../resources/lang', 'payforms');
+        $this->loadJsonTranslationsFrom(__DIR__ . '/../../resources/lang');
     }
 
     /**

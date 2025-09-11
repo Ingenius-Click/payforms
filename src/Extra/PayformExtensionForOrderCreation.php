@@ -5,6 +5,7 @@ namespace Ingenius\Payforms\Extra;
 use Illuminate\Http\Request;
 use Ingenius\Orders\Extensions\BaseOrderExtension;
 use Ingenius\Orders\Models\Order;
+use Ingenius\Payforms\Models\PaymentTransaction;
 use Ingenius\Payforms\Services\PayformsManager;
 
 class PayformExtensionForOrderCreation extends BaseOrderExtension
@@ -51,6 +52,23 @@ class PayformExtensionForOrderCreation extends BaseOrderExtension
     public function extendOrderArray(Order $order, array $orderArray): array
     {
         // Add payment information to the order array if needed
+        $orderClass = get_class($order);
+
+        $payment = PaymentTransaction::where('payable_id', $order->id)->where('payable_type', $orderClass)->first();
+
+        $orderArray['payform'] = [
+            'reference' => $payment->reference,
+            'external_id' => $payment->external_id,
+            'amount' => $payment->amount,
+            'currency' => $payment->currency,
+            'status' => $payment->status,
+            'expires_at' => $payment->expires_at,
+            'metadata' => $payment->metadata,
+            'payform_id' => $payment->payform_id,
+            'payform_name' => $payment->payform->name,
+            'payform_logo' => $payment->payform->icon,
+        ];
+
         return $orderArray;
     }
 

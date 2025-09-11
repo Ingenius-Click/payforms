@@ -2,6 +2,7 @@
 
 namespace Ingenius\Payforms\InvoiceData;
 
+use Illuminate\Support\Facades\App;
 use Ingenius\Orders\Data\InvoiceDataSection;
 use Ingenius\Orders\Interfaces\InvoiceDataProviderInterface;
 use Ingenius\Orders\Models\Invoice;
@@ -53,16 +54,16 @@ class PayformInvoiceDataProvider implements InvoiceDataProviderInterface
             $payform = $this->payformsManager->getPayform($transaction->payform_id);
 
             $properties = [
-                'Payment Method' => $payform->getName(),
-                'Transaction Reference' => $transaction->reference,
+                __('Payment Method') => $payform->getName(),
+                __('Transaction Reference') => $transaction->reference,
             ];
 
             if ($transaction->external_id) {
-                $properties['External Reference'] = $transaction->external_id;
+                $properties[__('External Reference')] = $transaction->external_id;
             }
 
             // Create a payment information section
-            $section = new InvoiceDataSection('Payment Information', $properties, 20);
+            $section = new InvoiceDataSection(__('Payment Information'), $properties, 20);
 
             return [$section];
         } catch (\Exception $e) {
