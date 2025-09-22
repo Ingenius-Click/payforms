@@ -4,6 +4,7 @@ namespace Ingenius\Payforms\Http\Controllers;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Http\Request;
 use Ingenius\Auth\Helpers\AuthHelper;
 use Ingenius\Core\Http\Controllers\Controller;
@@ -25,7 +26,7 @@ class PayFormDataController extends Controller
     {
         $actives = collect($this->payformsManager->getActivePayforms());
 
-        return response()->api(data: PublicPayformDataResource::collection($actives), message: 'Actives payforms fetched successfully');
+        return Response::api(data: PublicPayformDataResource::collection($actives), message: 'Actives payforms fetched successfully');
     }
 
     public function index(Request $request, ListPayformsDataAction $listPayformsDataAction): JsonResponse
@@ -36,7 +37,7 @@ class PayFormDataController extends Controller
 
         $payformsData = $listPayformsDataAction->handle($request->all());
 
-        return response()->api(data: $payformsData, message: 'Payforms fetched successfully');
+        return Response::api(data: $payformsData, message: 'Payforms fetched successfully');
     }
 
     public function update(UpdatePayformDataRequest $request): JsonResponse
@@ -51,6 +52,6 @@ class PayFormDataController extends Controller
 
         $payformData->update($request->validated());
 
-        return response()->api(data: $payformData, message: 'Payform data updated successfully');
+        return Response::api(data: $payformData, message: 'Payform data updated successfully');
     }
 }
