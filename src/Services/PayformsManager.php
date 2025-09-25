@@ -21,7 +21,7 @@ class PayformsManager
         $this->payforms[$payform_id] = $payform_class;
     }
 
-    public function getPayform($payform_id): AbstractPayForm
+    public function getPayform($payform_id, bool $ignoreActive = false): AbstractPayForm
     {
         $payform = $this->payforms[$payform_id] ?? null;
 
@@ -31,7 +31,7 @@ class PayformsManager
 
         $payform = new $payform();
 
-        if (!$payform->getActive()) {
+        if (!$ignoreActive && !$payform->getActive()) {
             throw new PayformNotActiveException("Payform is not active: {$payform_id}");
         }
 
@@ -55,7 +55,7 @@ class PayformsManager
             $payformInstance = new $payformClass();
             $requiredFeature = $payformInstance->getRequiredFeature();
 
-            if (tenant()->hasFeature($requiredFeature)) {
+            if (tenant()->hasFeature($requiredFeature->getIdentifier())) {
                 $accessibleIds[] = $payformId;
             }
         }

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Ingenius\Auth\Helpers\AuthHelper;
 use Ingenius\Core\Http\Controllers\Controller;
 use Ingenius\Payforms\Actions\ListPayformsDataAction;
@@ -13,6 +14,7 @@ use Ingenius\Payforms\Http\Requests\UpdatePayformDataRequest;
 use Ingenius\Payforms\Models\PayFormData;
 use Ingenius\Payforms\Services\PayformsManager;
 use Ingenius\Payforms\Transformers\PublicPayformDataResource;
+use Ingenius\Payforms\Transformers\PayFormDataShowResource;
 
 class PayFormDataController extends Controller
 {
@@ -40,18 +42,71 @@ class PayFormDataController extends Controller
         return Response::api(data: $payformsData, message: 'Payforms fetched successfully');
     }
 
-    public function update(UpdatePayformDataRequest $request): JsonResponse
+    public function update(UpdatePayformDataRequest $request, PayFormData $payFormData): JsonResponse
     {
         $user = AuthHelper::getUser();
 
         $this->authorizeForUser($user, 'update', PayFormData::class);
 
+        $accesiblePayformsIds = $this->payformsManager->getTenantAccessiblePayformIds();
+
+        if (empty($accesiblePayformsIds)) {
+            abort(403);
+        }
+
+        if (!in_array($payFormData->payform_id, $accesiblePayformsIds)) {
+            abort(403);
+        }
+
         $validated = $request->validated();
 
-        $payformData = PayFormData::where('payform_id', $validated['payformId'])->first();
+        $payFormData->fill($validated);
 
-        $payformData->update($request->validated());
+        if (isset($validated['icon'])) {
+            $this->saveBase64Image($validated['icon'], $payFormData);
+        }
 
-        return Response::api(data: $payformData, message: 'Payform data updated successfully');
+        $payFormData->save();
+
+        return Response::api(data: $payFormData, message: 'Payform data updated successfully');
+    }
+
+    public function show(Request $request, PayFormData $payFormData): JsonResponse
+    {
+        $user = AuthHelper::getUser();
+
+        $this->authorizeForUser($user, 'update', PayFormData::class);
+
+        $accesiblePayformsIds = $this->payformsManager->getTenantAccessiblePayformIds();
+
+        if (empty($accesiblePayformsIds)) {
+            abort(403);
+        }
+
+        if (!in_array($payFormData->payform_id, $accesiblePayformsIds)) {
+            abort(403);
+        }
+
+        return Response::api(data: new PayFormDataShowResource($payFormData), message: 'Payform data fetched successfully');
+    }
+
+    private function saveBase64Image(string $base64Image, PayFormData $payFormData): void
+    {
+        if (preg_match('/^data:image\/(\w+);base64,(.+)$/', $base64Image, $matches)) {
+            $oldPath = $payFormData->icon;
+            $extension = $matches[1];
+            $imageData = base64_decode($matches[2]);
+
+            if ($oldPath && Storage::exists($oldPath)) {
+                Storage::delete($oldPath);
+            }
+
+            $filename = $payFormData->payform_id . '_icon.' . $extension;
+            $path = 'payforms/images/' . $filename;
+
+            Storage::put($path, $imageData);
+
+            $payFormData->icon = $path;
+        }
     }
 }

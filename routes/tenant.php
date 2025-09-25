@@ -29,10 +29,14 @@ Route::middleware([
             ->name('payforms.index.actives')
         ;
         Route::middleware('tenant.user')->group(function () {
+            Route::get('/{payFormData}', [PayFormDataController::class, 'show'])
+                ->name('payforms.show')
+                ->middleware('tenant.has.feature:update-payforms')
+            ;
             Route::get('/', [PayFormDataController::class, 'index'])
                 ->name('payforms.index')
                 ->middleware('tenant.has.feature:list-payforms');
-            Route::put('/', [PayFormDataController::class, 'update'])
+            Route::put('/{payFormData}', [PayFormDataController::class, 'update'])
                 ->name('payforms.update')
                 ->middleware('tenant.has.feature:update-payforms');
         });

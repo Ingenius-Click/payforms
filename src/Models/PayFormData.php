@@ -4,6 +4,7 @@ namespace Ingenius\Payforms\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Ingenius\Payforms\Services\PayformsManager;
 
 class PayFormData extends Model
 {
@@ -17,7 +18,6 @@ class PayFormData extends Model
     protected $fillable = [
         'payform_id',
         'name',
-        'icon',
         'description',
         'active',
         'args',
@@ -28,4 +28,14 @@ class PayFormData extends Model
         'args' => 'array',
         'currencies' => 'array',
     ];
+
+    protected $appends = [];
+
+    public function getRulesAttribute(): array
+    {
+        $payFormManager = app(PayformsManager::class);
+        $payform = $payFormManager->getPayform($this->payform_id, true);
+
+        return $payform->rules();
+    }
 }

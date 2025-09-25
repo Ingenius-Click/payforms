@@ -14,10 +14,9 @@ class UpdatePayformDataRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payformId' => ['required', 'exists:payforms_data,payform_id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:255'],
-            'icon' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:300'],
+            'icon' => ['nullable', 'string'],
             'active' => ['required', 'boolean'],
             'currencies' => ['required', 'array'],
             'currencies.*' => ['required', 'string', 'max:3'],
@@ -47,7 +46,7 @@ class UpdatePayformDataRequest extends FormRequest
 
         try {
             $payFormManager = app(PayformsManager::class);
-            $payform = $payFormManager->getPayform($payformId);
+            $payform = $payFormManager->getPayform($payformId, true);
         } catch (PayformNotFoundException $e) {
             return [];
         }
