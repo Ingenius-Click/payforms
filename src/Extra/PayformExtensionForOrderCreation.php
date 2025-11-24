@@ -33,8 +33,8 @@ class PayformExtensionForOrderCreation extends BaseOrderExtension
             return [];
         }
 
-        // Use the subtotal from the context (which includes all previous extensions)
-        $amount = $context['subtotal'];
+        // Use the total from the context (which includes all previous extensions: discounts, shipping, etc.)
+        $amount = $context['total'];
 
         // Create payment transaction
         $transaction = $payform->createTransaction($amount, $order->getCurrency(), [], $order);

@@ -46,13 +46,22 @@ class PermissionServiceProvider extends ServiceProvider
      */
     protected function registerPermissions(PermissionsManager $permissionsManager): void
     {
-        // Register PayForm package permissions
-        $permissionsManager->registerMany([
-            PayformPermissions::UPDATE_PAYFORM => 'Update payment form',
-        ], $this->packageName, 'tenant');
+        $permissionsManager->register(
+            PayformPermissions::UPDATE_PAYFORM,
+            'Update payment form',
+            $this->packageName,
+            'tenant',
+            'Update payment form',
+            'Payment Forms'
+        );
 
-        $permissionsManager->registerMany([
-            PaymentTransitionPermissions::MANUAL_STATUS_CHANGE => 'Change payment status manually',
-        ], $this->packageName, 'tenant');
+        $permissionsManager->register(
+            PaymentTransitionPermissions::MANUAL_STATUS_CHANGE,
+            'Change payment status manually',
+            $this->packageName,
+            'tenant',
+            'Change payment status manually',
+            'Payment Transitions'
+        );
     }
 }
