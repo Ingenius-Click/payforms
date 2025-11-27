@@ -60,6 +60,7 @@ class PayformExtensionForOrderCreation extends BaseOrderExtension
             'reference' => $payment->reference,
             'external_id' => $payment->external_id,
             'amount' => $payment->amount,
+            'amount_converted' => $payment->amount * $order->exchange_rate,
             'currency' => $payment->currency,
             'status' => $payment->status,
             'expires_at' => $payment->expires_at,
