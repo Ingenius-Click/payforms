@@ -3,5 +3,10 @@
     "Transaction Reference": "Referencia de Transacción",
     "External Reference": "Referencia Externa",
     "Payment Information": "Información de Pago",
-    "Paid": "Pagado"
+    "Paid": "Pagado",
+    "Source Account": "Cuenta de Origen (source)",
+    "Username": "Usuario",
+    "Client ID": "ID de Cliente",
+    "Client Secret": "Secreto de Cliente",
+    "API URL": "URL del API"
 }

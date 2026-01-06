@@ -39,10 +39,14 @@ class UpdatePayformDataRequest extends FormRequest
 
     public function generateArgsRules(): array
     {
-        $payformId = request('payformId');
-        if (!$payformId) {
+        // Get the PayFormData model from route model binding
+        $payFormData = $this->route('payFormData');
+
+        if (!$payFormData) {
             return [];
         }
+
+        $payformId = $payFormData->payform_id;
 
         try {
             $payFormManager = app(PayformsManager::class);

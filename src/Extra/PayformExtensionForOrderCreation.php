@@ -36,8 +36,17 @@ class PayformExtensionForOrderCreation extends BaseOrderExtension
         // Use the total from the context (which includes all previous extensions: discounts, shipping, etc.)
         $amount = $context['total'];
 
+        $metadata = [
+            'customer' => [
+                'name' => $order->customer_name ?? '',
+                'email' => $order->customer_email ?? '',
+                'phone' => $order->customer_phone ?? '',
+                'address' => $order->customer_address ?? ''
+            ]
+        ];
+
         // Create payment transaction
-        $transaction = $payform->createTransaction($amount, $order->getCurrency(), [], $order);
+        $transaction = $payform->createTransaction($amount, $order->getCurrency(), $metadata, $order);
 
         // Return payment data to be sent to the client
         return $transaction->toArray();

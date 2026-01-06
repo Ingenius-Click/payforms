@@ -13,6 +13,7 @@ use Ingenius\Payforms\Actions\ListPayformsDataAction;
 use Ingenius\Payforms\Http\Requests\UpdatePayformDataRequest;
 use Ingenius\Payforms\Models\PayFormData;
 use Ingenius\Payforms\Services\PayformsManager;
+use Ingenius\Payforms\Transformers\PayFormDataResource;
 use Ingenius\Payforms\Transformers\PublicPayformDataResource;
 use Ingenius\Payforms\Transformers\PayFormDataShowResource;
 
@@ -39,7 +40,7 @@ class PayFormDataController extends Controller
 
         $payformsData = $listPayformsDataAction->handle($request->all());
 
-        return Response::api(data: $payformsData, message: 'Payforms fetched successfully');
+        return Response::api(data: PayFormDataResource::collection($payformsData), message: 'Payforms fetched successfully');
     }
 
     public function update(UpdatePayformDataRequest $request, PayFormData $payFormData): JsonResponse

@@ -6,6 +6,7 @@ use Ingenius\Coins\Services\CurrencyServices;
 use Ingenius\Payforms\Exceptions\PayformAlreadyRegisteredException;
 use Ingenius\Payforms\Exceptions\PayformNotFoundException;
 use Ingenius\Payforms\Exceptions\PayformNotActiveException;
+use Ingenius\Payforms\Models\PayFormData;
 use Ingenius\Payforms\Payforms\AbstractPayForm;
 
 class PayformsManager

@@ -2,6 +2,7 @@
 
 namespace Ingenius\Payforms\Payforms;
 
+use Illuminate\Http\Request;
 use Ingenius\Core\Interfaces\HasFeature;
 use Ingenius\Core\Interfaces\IWithPayment;
 use Illuminate\Contracts\Support\Arrayable;
@@ -121,6 +122,36 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
         return [];
     }
 
+    /**
+     * Get field labels for the payform configuration
+     * Override this method to provide translated labels for each field
+     *
+     * @return array Key-value pairs of field keys and their labels
+     */
+    protected function getFieldLabels(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get rules with labels in structured format
+     *
+     * @return array Array of ['key' => string, 'label' => string, 'rules' => array]
+     */
+    public function rulesWithLabels(): array
+    {
+        $rules = $this->rules();
+        $labels = $this->getFieldLabels();
+
+        return array_map(function($key, $validationRules) use ($labels) {
+            return [
+                'key' => $key,
+                'label' => $labels[$key] ?? __($key),
+                'rules' => $validationRules,
+            ];
+        }, array_keys($rules), array_values($rules));
+    }
+
     public function getActive(): bool
     {
         return $this->active;
@@ -204,9 +235,9 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
      * @param array $data Additional data needed for payment
      * @return mixed Result of the payment
      */
-    public function commitPayment(array $data = [])
+    public function commitPayment(Request $request)
     {
-        $result = $this->handleCommitPayment($data);
+        $result = $this->handleCommitPayment($request);
 
         if ($result && $result->status == PaymentStatus::APPROVED) {
             $paymentTransaction = $result->transaction;
@@ -282,5 +313,5 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
      * @param array $data
      * @return PaymentTransactionStatus|null
      */
-    abstract protected function handleCommitPayment(array $data): PaymentTransactionStatus|null;
+    abstract protected function handleCommitPayment(Request $request): PaymentTransactionStatus|null;
 }

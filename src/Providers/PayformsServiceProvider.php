@@ -15,11 +15,13 @@ use Ingenius\Payforms\Extra\PayformExtensionForOrderCreation;
 use Ingenius\Payforms\Features\CashPayformFeature;
 use Ingenius\Payforms\Features\ListPayformsFeature;
 use Ingenius\Payforms\Features\ManualStatusChangeFeature;
+use Ingenius\Payforms\Features\TransfermovilPayformFeature;
 use Ingenius\Payforms\Features\UpdatePayformsFeature;
 use Ingenius\Payforms\Initializers\PayformsTenantInitializer;
 use Ingenius\Payforms\InvoiceData\PayformInvoiceDataProvider;
 use Ingenius\Payforms\NewOrderStatuses\PaidOrderStatus;
 use Ingenius\Payforms\Payforms\CashPayForm;
+use Ingenius\Payforms\Payforms\TransfermovilPayForm;
 use Ingenius\Payforms\Services\PayformsManager;
 use Ingenius\Payforms\Policies\PayFormDataPolicy;
 use Ingenius\Payforms\Policies\PaymentTransactionPolicy;
@@ -80,6 +82,7 @@ class PayformsServiceProvider extends ServiceProvider
             $manager->register(new UpdatePayformsFeature());
             $manager->register(new ManualStatusChangeFeature());
             $manager->register(new CashPayformFeature());
+            $manager->register(new TransfermovilPayformFeature());
         });
     }
 
@@ -161,6 +164,7 @@ class PayformsServiceProvider extends ServiceProvider
     {
         $this->app->afterResolving(PayformsManager::class, function (PayformsManager $manager) {
             $manager->registerPayform('cash', CashPayForm::class);
+            $manager->registerPayform('transfermovil', TransfermovilPayForm::class);
         });
     }
 

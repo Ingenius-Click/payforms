@@ -21,7 +21,7 @@ class PayFormDataShowResource extends JsonResource
             'active' => $this->active,
             'currencies' => $this->currencies,
             'args' => $this->args,
-            'rules' => $this->getRulesAttribute()
+            'rules' => $this->getRulesAttribute(),
         ];
     }
 }

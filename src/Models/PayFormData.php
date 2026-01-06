@@ -36,6 +36,6 @@ class PayFormData extends Model
         $payFormManager = app(PayformsManager::class);
         $payform = $payFormManager->getPayform($this->payform_id, true);
 
-        return $payform->rules();
+        return $payform->rulesWithLabels();
     }
 }

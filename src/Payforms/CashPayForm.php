@@ -2,6 +2,7 @@
 
 namespace Ingenius\Payforms\Payforms;
 
+use Illuminate\Http\Request;
 use Ingenius\Core\Interfaces\FeatureInterface;
 use Ingenius\Payforms\Features\CashPayformFeature;
 use Ingenius\Payforms\Models\PaymentTransaction;
@@ -36,7 +37,7 @@ class CashPayForm extends AbstractPayForm
         return PaymentResponse::none($transaction);
     }
 
-    protected function handleCommitPayment(array $data): PaymentTransactionStatus|null
+    protected function handleCommitPayment(Request $request): PaymentTransactionStatus|null
     {
         return null;
     }

@@ -11,9 +11,13 @@
 |
 */
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
 use Ingenius\Payforms\Http\Controllers\PayFormDataController;
 use Ingenius\Payforms\Http\Controllers\PaymentTransactionController;
+use Ingenius\Payforms\Services\PayformsManager;
 
 Route::middleware([
     'api',
@@ -40,6 +44,23 @@ Route::middleware([
                 ->name('payforms.update')
                 ->middleware('tenant.has.feature:update-payforms');
         });
+
+        Route::post('/{payform}/commit', function(Request $request, $payform, PayformsManager $payformsManager) {
+            $payformInstance = $payformsManager->getPayform($payform);
+
+            if(!$payformInstance) {
+                abort(404, __('No payform found or active'));
+            }
+
+            try {
+                $payformInstance->commitPayment($request);
+            } catch (Exception $e) {
+                Log::error($e->getMessage());
+                return Response::api(__('An error occurred'), 500);
+            }
+
+            return Response::api(__('Payment commited successfully'));
+        })->name('payform.commit');
     });
 });
 
