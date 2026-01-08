@@ -182,7 +182,7 @@ class TransfermovilPayForm extends AbstractPayForm
         ];
 
         // Build the full URL with the resource endpoint
-        $resource = 'create-payment';
+        $resource = 'api/create-payment';
         $fullUrl = rtrim($url, '/') . '/' . $resource;
 
         try {
