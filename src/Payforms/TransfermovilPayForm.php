@@ -181,8 +181,12 @@ class TransfermovilPayForm extends AbstractPayForm
             ])
         ];
 
+        // Build the full URL with the resource endpoint
+        $resource = 'create-payment';
+        $fullUrl = rtrim($url, '/') . '/' . $resource;
+
         try {
-            $decoded = $this->makePaymentRequest($client, $url, $payload);
+            $decoded = $this->makePaymentRequest($client, $fullUrl, $payload);
 
             $qrImage = base64_decode($decoded['data']['qrImage']);
 
