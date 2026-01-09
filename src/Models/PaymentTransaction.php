@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Ingenius\Core\Interfaces\IOrderable;
 use Ingenius\Payforms\Enums\PaymentStatus;
 
 class PaymentTransaction extends Model
@@ -99,7 +100,7 @@ class PaymentTransaction extends Model
     {
         $transaction = new self([
             'payform_id' => $payform_id,
-            'reference' => $payable ? $payable->id : self::generateReference(),
+            'reference' => $payable ? ($payable instanceof IOrderable ? $payable->getOrderableCode() : self::generateReference()) : self::generateReference(),
             'amount' => $amount,
             'currency' => $currency,
             'metadata' => $metadata,

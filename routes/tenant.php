@@ -46,6 +46,9 @@ Route::middleware([
         });
 
         Route::post('/{payform}/commit', function(Request $request, $payform, PayformsManager $payformsManager) {
+            Log::info('Commiting payform payment');  
+            Log::info('Payform ID: ' . $payform);
+            Log::info('Request Data: ' . json_encode($request->all()));
             $payformInstance = $payformsManager->getPayform($payform);
 
             if(!$payformInstance) {
