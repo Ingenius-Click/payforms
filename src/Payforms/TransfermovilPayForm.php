@@ -167,10 +167,10 @@ class TransfermovilPayForm extends AbstractPayForm
         $reference = $transaction->reference;
 
         $payload = [
-            'amount' => $transaction->amount * 100,
+            'amount' => $transaction->amount / 100,
             'currency' => $transaction->currency ?? 'USD',
             'description' => $this->getDescription(),
-            'phone' => $transaction->metadata['customer']['phone'] ?? '',
+            'phone' => ltrim($transaction->metadata['customer']['phone'] ?? '', '+'),
             'validTime' => 0,
             'source' => $source,
             'username' => $username,
