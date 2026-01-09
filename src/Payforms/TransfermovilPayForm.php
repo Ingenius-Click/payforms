@@ -177,7 +177,7 @@ class TransfermovilPayForm extends AbstractPayForm
             'externalID' => $reference,
             'callback' => route('payform.commit', [
                 'payform' => $this->getId(),
-                'tenant' => tenant()->getTenantKey()
+                'tenant' => tenant()->domains()->first()?->domain
             ])
         ];
 
@@ -202,6 +202,7 @@ class TransfermovilPayForm extends AbstractPayForm
 
     protected function handleCommitPayment(Request $request): PaymentTransactionStatus|null
     {
+        Log::info('Transfermovil handleCommitPayment called');
         return null;
     }
 }
