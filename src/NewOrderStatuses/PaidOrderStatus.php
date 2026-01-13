@@ -42,12 +42,6 @@ class PaidOrderStatus implements OrderStatusInterface
 
     public function onEnter(Order $order, string $previousStatusIdentifier): void
     {
-        /**
-         * This method is intentionally left empty as all payment processing logic
-         * is handled before the order reaches this status. By the time an order
-         * enters the 'paid' status, the payment has been verified and recorded.
-         * No additional actions are needed when entering this state.
-         */
         $invoiceService = app(InvoiceCreationManager::class);
         $invoiceService->attemptToCreateInvoice($order, now()->toDateTimeString(), $this->getIdentifier());
     }

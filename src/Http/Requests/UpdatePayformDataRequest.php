@@ -37,6 +37,36 @@ class UpdatePayformDataRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Get custom attributes for validator errors.
+     */
+    public function attributes(): array
+    {
+        $payFormData = $this->route('payFormData');
+
+        if (!$payFormData) {
+            return [];
+        }
+
+        $payformId = $payFormData->payform_id;
+
+        try {
+            $payFormManager = app(PayformsManager::class);
+            $payform = $payFormManager->getPayform($payformId, true);
+        } catch (PayformNotFoundException $e) {
+            return [];
+        }
+
+        $attributes = [];
+        $fieldsConfig = $payform->getFieldsConfig();
+
+        foreach ($fieldsConfig as $key => $config) {
+            $attributes['args.' . $key] = $config['label'] ?? __($key);
+        }
+
+        return $attributes;
+    }
+
     public function generateArgsRules(): array
     {
         // Get the PayFormData model from route model binding

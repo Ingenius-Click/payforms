@@ -131,4 +131,15 @@ class PaymentTransaction extends Model
                 PaymentStatus::PENDING->value
             ]);
     }
+
+    public function pay(): PaymentTransactionStatus {
+
+        $currentStatus = $this->getCurrentStatus();
+
+        if($currentStatus != PaymentStatus::PENDING) {
+            throw new \Exception("Only PENDING transactions can be paid.");
+        }
+
+        return $this->setStatus(PaymentStatus::APPROVED);
+    }
 }

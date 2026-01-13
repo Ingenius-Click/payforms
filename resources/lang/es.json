@@ -8,5 +8,6 @@
     "Username": "Usuario",
     "Client ID": "ID de Cliente",
     "Client Secret": "Secreto de Cliente",
-    "API URL": "URL del API"
+    "API URL": "URL del API",
+    "Public Key": "Clave Pública"
 }

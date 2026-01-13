@@ -31,11 +31,10 @@ class PayFormData extends Model
 
     protected $appends = [];
 
-    public function getRulesAttribute(): array
-    {
+    public function getFieldsConfigAttribute(): array {
         $payFormManager = app(PayformsManager::class);
         $payform = $payFormManager->getPayform($this->payform_id, true);
 
-        return $payform->rulesWithLabels();
+        return $payform->getFieldsConfig();
     }
 }

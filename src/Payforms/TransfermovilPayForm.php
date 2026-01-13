@@ -37,18 +37,74 @@ class TransfermovilPayForm extends AbstractPayForm
             'username' => ['required', 'string'],
             'clientID' => ['required', 'numeric'],
             'clientSecret' => ['required', 'string'],
-            'url' => ['required', 'url']
+            'publicKey' => ['required', 'string'],
+            'url' => ['required', 'url'],
         ];
     }
 
-    protected function getFieldLabels(): array
+    public function getFieldsConfig(): array
     {
         return [
-            'source' => __('Source Account'),
-            'username' => __('Username'),
-            'clientID' => __('Client ID'),
-            'clientSecret' => __('Client Secret'),
-            'url' => __('API URL'),
+            'source' => [
+                'label' => __('Source Account'),
+                'type' => 'number',
+                'rules' => $this->rules()['source'],
+                'description' => __('The source account number for Transfermovil transactions'),
+                'placeholder' => __('e.g., 123456789'),
+                'group' => 'credentials',
+                'order' => 1,
+            ],
+            'username' => [
+                'label' => __('Username'),
+                'type' => 'text',
+                'rules' => $this->rules()['username'],
+                'description' => __('Your Transfermovil API username'),
+                'placeholder' => __('Enter your username'),
+                'group' => 'credentials',
+                'order' => 2,
+            ],
+            'clientID' => [
+                'label' => __('Client ID'),
+                'type' => 'number',
+                'rules' => $this->rules()['clientID'],
+                'description' => __('OAuth client ID provided by Transfermovil'),
+                'placeholder' => __('Enter your client ID'),
+                'group' => 'credentials',
+                'order' => 3,
+            ],
+            'clientSecret' => [
+                'label' => __('Client Secret'),
+                'type' => 'password',
+                'rules' => $this->rules()['clientSecret'],
+                'description' => __('OAuth client secret (kept secure and encrypted)'),
+                'placeholder' => __('Enter your client secret'),
+                'group' => 'credentials',
+                'order' => 4,
+                'attributes' => [
+                    'autocomplete' => 'off',
+                ],
+            ],
+            'publicKey' => [
+                'label' => __('Public Key'),
+                'type' => 'textarea',
+                'rules' => $this->rules()['publicKey'],
+                'description' => __('Public key for verifying webhook signatures'),
+                'placeholder' => __('Paste your public key here'),
+                'group' => 'security',
+                'order' => 5,
+                'attributes' => [
+                    'rows' => 5,
+                ],
+            ],
+            'url' => [
+                'label' => __('API URL'),
+                'type' => 'url',
+                'rules' => $this->rules()['url'],
+                'description' => __('The base URL for Transfermovil API endpoints'),
+                'placeholder' => __('https://api.transfermovil.cu'),
+                'group' => 'configuration',
+                'order' => 6,
+            ],
         ];
     }
 
@@ -203,6 +259,38 @@ class TransfermovilPayForm extends AbstractPayForm
     protected function handleCommitPayment(Request $request): PaymentTransactionStatus|null
     {
         Log::info('Transfermovil handleCommitPayment called');
+
+        $publicKey = $this->getArg('publicKey');
+        $encryptedPayload = $request->input('encrypted') ?? [];
+
+        //Decrypt and verify the webhook payload using the public key
+        openssl_public_decrypt(base64_decode($encryptedPayload), $decryptedData, $publicKey);
+
+        $data = json_decode($decryptedData, true);
+
+        if (!$data) {
+            Log::error('Transfermovil webhook: Failed to decrypt or parse payload');
+            return null;
+        }
+
+        if(isset($data['status'])) {
+            if($data['status'] == 'PAID') {
+                $reference = $data['externalID'] ?? null;
+                if(!$reference) {
+                    Log::error('Transfermovil webhook: Missing externalID in payload');
+                    return null;
+                }
+                $transaction = PaymentTransaction::where('reference', $reference)->first();
+
+                if(!$transaction) {
+                    Log::error('Transfermovil webhook: No transaction found for reference ' . $reference);
+                    return null;
+                }
+
+                return $transaction->pay();
+            }
+        }
+
         return null;
     }
 }

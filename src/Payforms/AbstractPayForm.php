@@ -123,33 +123,30 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
     }
 
     /**
-     * Get field labels for the payform configuration
-     * Override this method to provide translated labels for each field
+     * Get comprehensive field configuration schema
+     * Override this method to define complete field configuration including
+     * labels, types, descriptions, validation rules, and other metadata
      *
-     * @return array Key-value pairs of field keys and their labels
+     * @return array Array of field configurations with structure:
+     * [
+     *   'field_key' => [
+     *     'label' => string,           // Display label (required)
+     *     'type' => string,            // Input type: text, password, url, number, textarea, select, etc. (required)
+     *     'rules' => array|string,     // Laravel validation rules (required)
+     *     'description' => string,     // Help text or description (optional)
+     *     'placeholder' => string,     // Input placeholder (optional)
+     *     'default' => mixed,          // Default value (optional)
+     *     'options' => array,          // For select/radio types (optional)
+     *     'group' => string,           // Group/section name for organizing fields (optional)
+     *     'order' => int,              // Display order (optional)
+     *     'visible' => bool|callable,  // Conditional visibility (optional)
+     *     'attributes' => array,       // Additional HTML attributes (optional)
+     *   ]
+     * ]
      */
-    protected function getFieldLabels(): array
+    public function getFieldsConfig(): array
     {
         return [];
-    }
-
-    /**
-     * Get rules with labels in structured format
-     *
-     * @return array Array of ['key' => string, 'label' => string, 'rules' => array]
-     */
-    public function rulesWithLabels(): array
-    {
-        $rules = $this->rules();
-        $labels = $this->getFieldLabels();
-
-        return array_map(function($key, $validationRules) use ($labels) {
-            return [
-                'key' => $key,
-                'label' => $labels[$key] ?? __($key),
-                'rules' => $validationRules,
-            ];
-        }, array_keys($rules), array_values($rules));
     }
 
     public function getActive(): bool
