@@ -268,6 +268,8 @@ class TransfermovilPayForm extends AbstractPayForm
 
         $data = json_decode($decryptedData, true);
 
+        Log::info('Decrypted webhook payload: ' . json_encode($data));
+
         if (!$data) {
             Log::error('Transfermovil webhook: Failed to decrypt or parse payload');
             return null;
