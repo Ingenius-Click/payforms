@@ -277,7 +277,7 @@ class TransfermovilPayForm extends AbstractPayForm
 
         if(isset($data['status'])) {
             if($data['status'] == 'PAID') {
-                $reference = $data['externalID'] ?? null;
+                $reference = $data['externalId'] ?? null;
                 if(!$reference) {
                     Log::error('Transfermovil webhook: Missing externalID in payload');
                     return null;
