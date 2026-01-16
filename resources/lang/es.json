@@ -9,5 +9,8 @@
     "Client ID": "ID de Cliente",
     "Client Secret": "Secreto de Cliente",
     "API URL": "URL del API",
-    "Public Key": "Clave Pública"
+    "Public Key": "Clave Pública",
+    "Credentials": "Credenciales",
+    "Security": "Seguridad",
+    "Configuration": "Configuración"
 }

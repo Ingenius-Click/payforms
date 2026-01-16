@@ -51,7 +51,7 @@ class TransfermovilPayForm extends AbstractPayForm
                 'rules' => $this->rules()['source'],
                 'description' => __('The source account number for Transfermovil transactions'),
                 'placeholder' => __('e.g., 123456789'),
-                'group' => 'credentials',
+                'group' => __('Credentials'),
                 'order' => 1,
             ],
             'username' => [
@@ -60,7 +60,7 @@ class TransfermovilPayForm extends AbstractPayForm
                 'rules' => $this->rules()['username'],
                 'description' => __('Your Transfermovil API username'),
                 'placeholder' => __('Enter your username'),
-                'group' => 'credentials',
+                'group' => __('Credentials'),
                 'order' => 2,
             ],
             'clientID' => [
@@ -69,7 +69,7 @@ class TransfermovilPayForm extends AbstractPayForm
                 'rules' => $this->rules()['clientID'],
                 'description' => __('OAuth client ID provided by Transfermovil'),
                 'placeholder' => __('Enter your client ID'),
-                'group' => 'credentials',
+                'group' => __('Credentials'),
                 'order' => 3,
             ],
             'clientSecret' => [
@@ -78,7 +78,7 @@ class TransfermovilPayForm extends AbstractPayForm
                 'rules' => $this->rules()['clientSecret'],
                 'description' => __('OAuth client secret (kept secure and encrypted)'),
                 'placeholder' => __('Enter your client secret'),
-                'group' => 'credentials',
+                'group' => __('Credentials'),
                 'order' => 4,
                 'attributes' => [
                     'autocomplete' => 'off',
@@ -90,7 +90,7 @@ class TransfermovilPayForm extends AbstractPayForm
                 'rules' => $this->rules()['publicKey'],
                 'description' => __('Public key for verifying webhook signatures'),
                 'placeholder' => __('Paste your public key here'),
-                'group' => 'security',
+                'group' => __('Security'),
                 'order' => 5,
                 'attributes' => [
                     'rows' => 5,
@@ -102,7 +102,7 @@ class TransfermovilPayForm extends AbstractPayForm
                 'rules' => $this->rules()['url'],
                 'description' => __('The base URL for Transfermovil API endpoints'),
                 'placeholder' => __('https://api.transfermovil.cu'),
-                'group' => 'configuration',
+                'group' => __('Configuration'),
                 'order' => 6,
             ],
         ];
