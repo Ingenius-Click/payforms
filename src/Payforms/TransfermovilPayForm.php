@@ -244,9 +244,17 @@ class TransfermovilPayForm extends AbstractPayForm
         try {
             $decoded = $this->makePaymentRequest($client, $fullUrl, $payload);
 
+            $transfermovilData = $decoded['data']['data'];
+
+            if(!$transfermovilData) {
+                throw new Exception('Transfermovil: Data not received');
+            }
+
             $qrImage = base64_decode($decoded['data']['qrImage']);
 
-            return PaymentResponse::qr($transaction, $qrImage);
+            return PaymentResponse::qr($transaction, $qrImage, null, [
+                'href' => "transfermovil://tm_compra_en_linea/action?id_transaccion={$transfermovilData['id_transaccion']}&importe={$transfermovilData['importe']}&moneda={$transfermovilData['moneda']}&numero_proveedor={$transfermovilData['numero_proveedor']}"
+            ]);
 
         } catch (Exception $e) {
             Log::info('Transfermovil handleCreateTransaction error');

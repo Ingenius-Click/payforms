@@ -75,9 +75,9 @@ class PaymentResponse implements Arrayable, Jsonable, JsonSerializable
      * @param string|null $message
      * @return static
      */
-    public static function redirect(PaymentTransaction $transaction, string $url, ?string $message = null): self
+    public static function redirect(PaymentTransaction $transaction, string $url, ?string $message = null, array $extraFields = []): self
     {
-        return new static($transaction, self::TYPE_REDIRECT, ['url' => $url], $message);
+        return new static($transaction, self::TYPE_REDIRECT, ['url' => $url, ... $extraFields], $message);
     }
 
     /**
@@ -88,9 +88,9 @@ class PaymentResponse implements Arrayable, Jsonable, JsonSerializable
      * @param string|null $message
      * @return static
      */
-    public static function qr(PaymentTransaction $transaction, string $qrContent, ?string $message = null): self
+    public static function qr(PaymentTransaction $transaction, string $qrContent, ?string $message = null, array $extraFields = []): self
     {
-        return new static($transaction, self::TYPE_QR, ['content' => $qrContent], $message);
+        return new static($transaction, self::TYPE_QR, ['content' => $qrContent, ... $extraFields], $message);
     }
 
     /**
@@ -101,9 +101,9 @@ class PaymentResponse implements Arrayable, Jsonable, JsonSerializable
      * @param string|null $message
      * @return static
      */
-    public static function form(PaymentTransaction $transaction, array $formFields, ?string $message = null): self
+    public static function form(PaymentTransaction $transaction, array $formFields, ?string $message = null, array $extraFields = []): self
     {
-        return new static($transaction, self::TYPE_FORM, ['fields' => $formFields], $message);
+        return new static($transaction, self::TYPE_FORM, ['fields' => $formFields, ... $extraFields], $message);
     }
 
     /**
@@ -115,11 +115,12 @@ class PaymentResponse implements Arrayable, Jsonable, JsonSerializable
      * @param string|null $message
      * @return static
      */
-    public static function component(PaymentTransaction $transaction, string $component, array $props = [], ?string $message = null): self
+    public static function component(PaymentTransaction $transaction, string $component, array $props = [], ?string $message = null, array $extraFields = []): self
     {
         return new static($transaction, self::TYPE_COMPONENT, [
             'component' => $component,
-            'props' => $props
+            'props' => $props,
+            ... $extraFields
         ], $message);
     }
 
@@ -132,11 +133,12 @@ class PaymentResponse implements Arrayable, Jsonable, JsonSerializable
      * @param string|null $message
      * @return static
      */
-    public static function info(PaymentTransaction $transaction, string $instructions, string $email, ?string $message = null): self
+    public static function info(PaymentTransaction $transaction, string $instructions, string $email, ?string $message = null, array $extraFields = []): self
     {
         return new static($transaction, self::TYPE_INFO, [
             'instructions' => $instructions,
-            'email' => $email
+            'email' => $email,
+            ... $extraFields
         ], $message);
     }
 
