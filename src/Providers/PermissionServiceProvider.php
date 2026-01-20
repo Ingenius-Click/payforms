@@ -51,8 +51,8 @@ class PermissionServiceProvider extends ServiceProvider
             'Update payment form',
             $this->packageName,
             'tenant',
-            'Update payment form',
-            'Payment Forms'
+            __('payforms::permissions.display_names.update_payment_form'),
+            __('payforms::permissions.groups.payment_forms')
         );
 
         $permissionsManager->register(
@@ -60,8 +60,8 @@ class PermissionServiceProvider extends ServiceProvider
             'Change payment status manually',
             $this->packageName,
             'tenant',
-            'Change payment status manually',
-            'Payment Transitions'
+            __('payforms::permissions.display_names.change_payment_status_manually'),
+            __('payforms::permissions.groups.payment_transitions')
         );
     }
 }

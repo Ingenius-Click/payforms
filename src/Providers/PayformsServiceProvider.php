@@ -43,6 +43,10 @@ class PayformsServiceProvider extends ServiceProvider
         // Register configuration with the registry
         $this->registerConfig(__DIR__ . '/../../config/payforms.php', 'payforms', 'payforms');
 
+        // Load translations early so they're available for permission registration
+        $this->loadTranslationsFrom(__DIR__ . '/../../resources/lang', 'payforms');
+        $this->loadJsonTranslationsFrom(__DIR__ . '/../../resources/lang');
+
         // Register policies
         $this->registerPolicies();
 
@@ -91,8 +95,6 @@ class PayformsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register translations
-        $this->registerTranslations();
         // Register migrations with the registry
         $this->registerMigrations(__DIR__ . '/../../database/migrations', 'payforms');
 
