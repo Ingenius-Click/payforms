@@ -261,7 +261,7 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'icon' => $this->icon,
+            'icon' => generate_tenant_aware_image_url($this->icon),
             'description' => $this->description,
             'currencies' => $this->currencies,
         ];
