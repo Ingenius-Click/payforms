@@ -45,6 +45,12 @@ enum PaymentStatus: string
     case CANCELED = 'canceled';
 
     /**
+     * The payment was registered manually without going through a payment gateway.
+     * Used for manual invoices where payment is confirmed outside the system.
+     */
+    case MANUAL = 'manual';
+
+    /**
      * Get the display name for the status
      */
     public function label(): string
@@ -57,6 +63,7 @@ enum PaymentStatus: string
             self::ON_HOLD => 'On Hold / Suspended',
             self::REFUNDED => 'Refunded / Returned',
             self::CANCELED => 'Canceled',
+            self::MANUAL => 'Manual Payment',
         };
     }
 
@@ -73,6 +80,7 @@ enum PaymentStatus: string
             self::ON_HOLD => '🕓',
             self::REFUNDED => '↩️',
             self::CANCELED => '🛑',
+            self::MANUAL => '📝',
         };
     }
 }
