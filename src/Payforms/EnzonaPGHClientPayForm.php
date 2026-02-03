@@ -21,7 +21,10 @@ class EnzonaPGHClientPayForm extends AbstractPaymentGatewayHubClientPayForm {
     }
 
     protected function buildPaymentPayload(PaymentTransaction $transaction, $payable): array {
-        $baseUrl = request()->getBaseUrl() ? request()->getBaseUrl() : 'http://localhost';
+
+        $tenantDomain = tenant()->domains()->first()?->domain ?? 'http://localhost';
+        $baseUrl = request()->headers->get('origin') ? request()->headers->get('origin') : $tenantDomain;
+
         return [
             'amount' => $transaction->amount,
             'currency' => $transaction->currency,
