@@ -121,15 +121,28 @@ class PaymentTransaction extends Model
     /**
      * Scope a query to only include expired payment transactions.
      *
+     * Finds transactions where:
+     * 1. expires_at is in the past
+     * 2. The latest status is PENDING
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeExpired(Builder $query): Builder
     {
-        return $query->where('expires_at', '<', Carbon::now())
-            ->whereIn('status', [
-                PaymentStatus::PENDING->value
-            ]);
+        return $query
+            ->where('expires_at', '<', Carbon::now())
+            ->whereNotNull('expires_at')
+            ->whereHas('statuses', function ($statusQuery) {
+                // Get the latest status for each transaction
+                $statusQuery->whereIn('id', function ($subQuery) {
+                    $subQuery->selectRaw('MAX(id)')
+                        ->from('payment_transaction_statuses')
+                        ->whereColumn('payment_transaction_id', 'payment_transactions.id')
+                        ->groupBy('payment_transaction_id');
+                })
+                ->where('status', PaymentStatus::PENDING);
+            });
     }
 
     public function pay(): PaymentTransactionStatus {

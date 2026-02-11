@@ -4,6 +4,7 @@ namespace Ingenius\Payforms\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Ingenius\Core\Services\FeatureManager;
+use Ingenius\Core\Services\ScheduledTaskManager;
 use Ingenius\Core\Support\TenantInitializationManager;
 use Ingenius\Core\Traits\RegistersConfigurations;
 use Ingenius\Core\Traits\RegistersMigrations;
@@ -11,6 +12,7 @@ use Ingenius\Orders\Services\InvoiceDataManager;
 use Ingenius\Orders\Services\OrderExtensionManager;
 use Ingenius\Orders\Services\OrderStatusManager;
 use Ingenius\Payforms\Console\Commands\AddOrderStatusTransitionsCommand;
+use Ingenius\Payforms\Console\Tasks\CancelExpiredOrdersTask;
 use Ingenius\Payforms\Extra\PayformExtensionForOrderCreation;
 use Ingenius\Payforms\Features\CashPayformFeature;
 use Ingenius\Payforms\Features\EnzonaPayformFeature;
@@ -29,7 +31,10 @@ use Ingenius\Payforms\Policies\PayFormDataPolicy;
 use Ingenius\Payforms\Policies\PaymentTransactionPolicy;
 use Ingenius\Payforms\Models\PayFormData;
 use Ingenius\Payforms\Models\PaymentTransaction;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Ingenius\Orders\Events\OrderStatusChangedEvent;
+use Ingenius\Payforms\Listeners\SyncTransactionStatusOnOrderChange;
 
 class PayformsServiceProvider extends ServiceProvider
 {
@@ -91,6 +96,11 @@ class PayformsServiceProvider extends ServiceProvider
             $manager->register(new TransfermovilPayformFeature());
             $manager->register(new EnzonaPayformFeature());
         });
+
+        // Register scheduled tasks
+        $this->app->afterResolving(ScheduledTaskManager::class, function (ScheduledTaskManager $manager) {
+            $manager->register($this->app->make(CancelExpiredOrdersTask::class));
+        });
     }
 
     /**
@@ -133,6 +143,9 @@ class PayformsServiceProvider extends ServiceProvider
 
         // Register commands
         $this->registerCommands();
+
+        // Register event listeners
+        $this->registerEventListeners();
 
         // Register order statuses
         $this->registerOrderStatuses();
@@ -199,5 +212,17 @@ class PayformsServiceProvider extends ServiceProvider
     {
         Gate::policy(PayFormData::class, PayFormDataPolicy::class);
         Gate::policy(PaymentTransaction::class, PaymentTransactionPolicy::class);
+    }
+
+    /**
+     * Register event listeners.
+     */
+    protected function registerEventListeners(): void
+    {
+        // Listen to order status changes to sync transaction status
+        Event::listen(
+            OrderStatusChangedEvent::class,
+            SyncTransactionStatusOnOrderChange::class
+        );
     }
 }

@@ -31,6 +31,7 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
     protected string $sandboxSuffix = '_sandbox';
     protected string $sandboxKey = 'use_sandbox';
     protected array $currencies = [];
+    protected ?int $expirationHours = null;
 
     /**
      * Constructor for AbstractPayForm
@@ -58,6 +59,7 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
         $this->icon = $payform->icon ?? '';
         $this->active = $payform->active;
         $this->currencies = $payform->currencies ?? [];
+        $this->expirationHours = $payform->expiration_hours;
     }
 
     public function configured(): bool
@@ -184,7 +186,7 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
      */
     public function getExpirationHours(): ?int
     {
-        return 12; // Default expiration time: 12 hours
+        return $this->expirationHours ?? 12; // Default expiration time: 12 hours
     }
 
     public function getCurrencies(): array

@@ -22,6 +22,7 @@ class PayFormData extends Model
         'active',
         'args',
         'currencies',
+        'expiration_hours',
     ];
 
     protected $casts = [

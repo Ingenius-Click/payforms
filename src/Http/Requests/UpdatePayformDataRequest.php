@@ -20,6 +20,7 @@ class UpdatePayformDataRequest extends FormRequest
             'active' => ['required', 'boolean'],
             'currencies' => ['required', 'array'],
             'currencies.*' => ['required', 'string', 'max:3'],
+            'expiration_hours' => ['nullable', 'integer', 'min:1', 'max:720'],
             ...empty($this->generateArgsRules()) ?
                 [] :
                 [
