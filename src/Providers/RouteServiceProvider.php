@@ -2,8 +2,7 @@
 
 namespace Ingenius\Payforms\Providers;
 
-use Ingenius\Core\Http\Middleware\InitializeTenancyByDomain;
-use Ingenius\Core\Http\Middleware\PreventAccessFromCentralDomains;
+use Ingenius\Core\Http\Middleware\InitializeTenancyByRequestData;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
@@ -70,8 +69,7 @@ class RouteServiceProvider extends ServiceProvider
 
         if (file_exists($routeFile)) {
             Route::middleware([
-                InitializeTenancyByDomain::class,
-                PreventAccessFromCentralDomains::class,
+                InitializeTenancyByRequestData::class
             ])->group(function () use ($routeFile) {
                 require $routeFile;
             });
