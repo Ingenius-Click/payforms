@@ -38,6 +38,7 @@ class EnzonaPGHClientPayForm extends AbstractPaymentGatewayHubClientPayForm {
                 'urlSuccess' => $baseUrl . '/payment-success?order=' . ($payable->id ?? ''),
                 'urlFailed' => $baseUrl . '/payment-failed',
                 'description' => $this->getDescription(),
+                'shipping' => $payable instanceof IOrderable ? $payable->getShippingCost() : 0,
                 'items' => $payable instanceof IOrderable ? collect($payable->getItems())->map(function ($item) {
                     return [
                         'name' => $item['productible_name'] ?? 'Item',
