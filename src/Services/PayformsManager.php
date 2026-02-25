@@ -13,6 +13,8 @@ class PayformsManager
 {
     protected $payforms = [];
 
+    public function __construct(protected CurrencyServices $currencyServices) {}
+
     public function registerPayform(string $payform_id, string $payform_class)
     {
         if (isset($this->payforms[$payform_id])) {
@@ -90,9 +92,9 @@ class PayformsManager
             return $payform->configured();
         });
 
-        // If no currency specified, use current system currency
+        // If no currency specified, use current request currency
         if ($currency === null) {
-            $currency = CurrencyServices::getSystemCurrencyShortName();
+            $currency = $this->currencyServices->getCurrentCurrency();
         }
 
         // Filter by currency support

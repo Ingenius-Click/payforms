@@ -26,6 +26,7 @@ use Ingenius\Payforms\NewOrderStatuses\PaidOrderStatus;
 use Ingenius\Payforms\Payforms\CashPayForm;
 use Ingenius\Payforms\Payforms\EnzonaPGHClientPayForm;
 use Ingenius\Payforms\Payforms\TransfermovilPayForm;
+use Ingenius\Coins\Services\CurrencyServices;
 use Ingenius\Payforms\Services\PayformsManager;
 use Ingenius\Payforms\Policies\PayFormDataPolicy;
 use Ingenius\Payforms\Policies\PaymentTransactionPolicy;
@@ -71,8 +72,8 @@ class PayformsServiceProvider extends ServiceProvider
         $this->app->register(PermissionServiceProvider::class);
 
         // Register the PayformsManager service
-        $this->app->singleton(PayformsManager::class, function () {
-            return new PayformsManager();
+        $this->app->singleton(PayformsManager::class, function ($app) {
+            return new PayformsManager($app->make(CurrencyServices::class));
         });
 
         // Register the order extension
