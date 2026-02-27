@@ -155,4 +155,15 @@ class PaymentTransaction extends Model
 
         return $this->setStatus(PaymentStatus::APPROVED);
     }
+
+    public function reject(): PaymentTransactionStatus {
+
+        $currentStatus = $this->getCurrentStatus();
+
+        if($currentStatus != PaymentStatus::PENDING) {
+            throw new \Exception("Only PENDING transactions can be rejected.");
+        }
+
+        return $this->setStatus(PaymentStatus::REJECTED);
+    }
 }

@@ -356,6 +356,11 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
             return $transaction->pay();
         }
 
+        if($status == 'rejected') {
+            Log::info("Rejecting payment for transaction: {$transactionId}");
+            return $transaction->reject();
+        }
+
         Log::warning("Webhook received for transaction {$transactionId} with status: {$status}");
         return null;
     }

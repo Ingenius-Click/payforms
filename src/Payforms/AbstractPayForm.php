@@ -250,6 +250,15 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
             }
         }
 
+        if ($result && ($result->status == PaymentStatus::REJECTED || $result->status == PaymentStatus::CANCELED)) {
+            $paymentTransaction = $result->transaction;
+            $payable = $paymentTransaction->payable;
+
+            if ($payable && $payable instanceof IWithPayment) {
+                $payable->onPaymentFailed();
+            }
+        }
+
         return $result;
     }
 
