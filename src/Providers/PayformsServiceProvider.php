@@ -26,6 +26,7 @@ use Ingenius\Payforms\NewOrderStatuses\PaidOrderStatus;
 use Ingenius\Payforms\Payforms\CashPayForm;
 use Ingenius\Payforms\Payforms\EnzonaPGHClientPayForm;
 use Ingenius\Payforms\Payforms\TransfermovilPayForm;
+use Ingenius\Payforms\Payforms\TransfermovilPGHClientPayForm;
 use Ingenius\Coins\Services\CurrencyServices;
 use Ingenius\Payforms\Services\PayformsManager;
 use Ingenius\Payforms\Policies\PayFormDataPolicy;
@@ -183,8 +184,9 @@ class PayformsServiceProvider extends ServiceProvider
     {
         $this->app->afterResolving(PayformsManager::class, function (PayformsManager $manager) {
             $manager->registerPayform('cash', CashPayForm::class);
-            $manager->registerPayform('transfermovil', TransfermovilPayForm::class);
+            // $manager->registerPayform('transfermovil', TransfermovilPayForm::class);
             $manager->registerPayform('enzona-pgh-client', EnzonaPGHClientPayForm::class);
+            $manager->registerPayform('transfermovil-pgh-client', TransfermovilPGHClientPayForm::class);
         });
     }
 
