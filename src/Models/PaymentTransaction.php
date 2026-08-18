@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Ingenius\Core\Interfaces\IOrderable;
 use Ingenius\Payforms\Enums\PaymentStatus;
+use Ingenius\Payforms\Exceptions\PaymentStatusConflictException;
 
 class PaymentTransaction extends Model
 {
@@ -22,6 +25,7 @@ class PaymentTransaction extends Model
     protected $fillable = [
         'payform_id',
         'reference',
+        'idempotency_key',
         'external_id',
         'amount',
         'currency',
@@ -68,7 +72,9 @@ class PaymentTransaction extends Model
      */
     public function getCurrentStatus(): ?PaymentStatus
     {
-        $latestStatus = $this->statuses()->latest('created_at')->first();
+        // Ordered by id, not created_at: two statuses recorded within the same
+        // second must still resolve to the one written last.
+        $latestStatus = $this->statuses()->latest('id')->first();
         return $latestStatus ? $latestStatus->status : null;
     }
 
@@ -94,6 +100,24 @@ class PaymentTransaction extends Model
     }
 
     /**
+     * Get the idempotency key for this transaction, generating one if the
+     * transaction predates the column.
+     *
+     * The key is stable for the lifetime of the transaction so that retrying a
+     * gateway request that may already have been processed resolves to the
+     * same remote payment instead of creating a second one.
+     */
+    public function getIdempotencyKey(): string
+    {
+        if (!$this->idempotency_key) {
+            $this->idempotency_key = (string) Str::uuid();
+            $this->save();
+        }
+
+        return $this->idempotency_key;
+    }
+
+    /**
      * Create a new transaction instance.
      */
     public static function createTransaction(string $payform_id, int $amount, string $currency, array $metadata = [], $payable = null): self
@@ -101,6 +125,7 @@ class PaymentTransaction extends Model
         $transaction = new self([
             'payform_id' => $payform_id,
             'reference' => $payable ? ($payable instanceof IOrderable ? $payable->getOrderableCode() : self::generateReference()) : self::generateReference(),
+            'idempotency_key' => (string) Str::uuid(),
             'amount' => $amount,
             'currency' => $currency,
             'metadata' => $metadata,
@@ -145,25 +170,60 @@ class PaymentTransaction extends Model
             });
     }
 
-    public function pay(): PaymentTransactionStatus {
-
-        $currentStatus = $this->getCurrentStatus();
-
-        if($currentStatus != PaymentStatus::PENDING) {
-            throw new \Exception("Only PENDING transactions can be paid.");
-        }
-
-        return $this->setStatus(PaymentStatus::APPROVED);
+    /**
+     * Mark this transaction as approved.
+     *
+     * Idempotent: an already approved transaction returns its existing status
+     * record untouched, so a redelivered gateway callback is a no-op rather
+     * than an error.
+     *
+     * @throws PaymentStatusConflictException If the transaction already reached a different final status
+     */
+    public function pay(): PaymentTransactionStatus
+    {
+        return $this->transitionTo(PaymentStatus::APPROVED);
     }
 
-    public function reject(): PaymentTransactionStatus {
+    /**
+     * Mark this transaction as rejected.
+     *
+     * Idempotent under the same rules as pay().
+     *
+     * @throws PaymentStatusConflictException If the transaction already reached a different final status
+     */
+    public function reject(): PaymentTransactionStatus
+    {
+        return $this->transitionTo(PaymentStatus::REJECTED);
+    }
 
-        $currentStatus = $this->getCurrentStatus();
+    /**
+     * Move a pending transaction to a final status.
+     *
+     * The row is locked for the duration of the check so that two callbacks
+     * arriving at once cannot both observe PENDING and both record a status.
+     * Use PaymentTransactionStatus::isNewTransition() on the result to tell an
+     * actual state change from a replay.
+     *
+     * @throws PaymentStatusConflictException If the transaction is in a final status other than the target
+     */
+    protected function transitionTo(PaymentStatus $status): PaymentTransactionStatus
+    {
+        return DB::transaction(function () use ($status) {
+            static::query()->whereKey($this->getKey())->lockForUpdate()->first();
 
-        if($currentStatus != PaymentStatus::PENDING) {
-            throw new \Exception("Only PENDING transactions can be rejected.");
-        }
+            $currentStatus = $this->getCurrentStatus();
 
-        return $this->setStatus(PaymentStatus::REJECTED);
+            if ($currentStatus === $status) {
+                // Already in the target state — hand back the existing record so
+                // wasRecentlyCreated stays false and callers skip their side effects.
+                return $this->statuses()->latest('id')->first();
+            }
+
+            if ($currentStatus !== PaymentStatus::PENDING) {
+                throw new PaymentStatusConflictException($currentStatus, $status);
+            }
+
+            return $this->setStatus($status);
+        });
     }
 }

@@ -145,7 +145,7 @@ class TransfermovilPayForm extends AbstractPayForm
      */
     protected function refreshAccessToken(): string
     {
-        $client = new Client();
+        $client = $this->makeHttpClient();
 
         try {
             $response = $client->request('POST', $this->getArg('url') . '/oauth/token', [
@@ -182,14 +182,22 @@ class TransfermovilPayForm extends AbstractPayForm
      * @return array
      * @throws Exception
      */
-    protected function makePaymentRequest(Client $client, string $url, array $payload, bool $isRetry = false): array
+    protected function makePaymentRequest(Client $client, string $url, array $payload, bool $isRetry = false, ?string $idempotencyKey = null): array
     {
         try {
+            $headers = [
+                'Authorization' => 'Bearer ' . $this->getAccessToken(),
+                'Accept' => 'application/json'
+            ];
+
+            // Sent on every attempt, including retries, so the gateway recognises
+            // a repeated request as the same payment rather than a new one.
+            if ($idempotencyKey) {
+                $headers['Idempotency-Key'] = $idempotencyKey;
+            }
+
             $response = $client->request('POST', $url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->getAccessToken(),
-                    'Accept' => 'application/json'
-                ],
+                'headers' => $headers,
                 'json' => $payload
             ]);
 
@@ -203,7 +211,7 @@ class TransfermovilPayForm extends AbstractPayForm
                 Log::warning('Transfermovil auth error (token may be revoked), refreshing token and retrying');
 
                 $this->invalidateToken();
-                return $this->makePaymentRequest($client, $url, $payload, true);
+                return $this->makePaymentRequest($client, $url, $payload, true, $idempotencyKey);
             }
 
             // Re-throw if not auth error or already retried
@@ -214,7 +222,7 @@ class TransfermovilPayForm extends AbstractPayForm
     protected function handleCreateTransaction(PaymentTransaction $transaction, $payable = null): PaymentResponse
     {
 
-        $client = new Client();
+        $client = $this->makeHttpClient();
 
         $source = $this->getArg('source');
         $username = $this->getArg('username');
@@ -242,7 +250,7 @@ class TransfermovilPayForm extends AbstractPayForm
         $fullUrl = rtrim($url, '/') . '/' . $resource;
 
         try {
-            $decoded = $this->makePaymentRequest($client, $fullUrl, $payload);
+            $decoded = $this->makePaymentRequest($client, $fullUrl, $payload, false, $transaction->getIdempotencyKey());
 
             $transfermovilData = $decoded['data']['data'];
 

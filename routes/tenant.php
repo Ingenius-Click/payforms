@@ -15,6 +15,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
+use Ingenius\Payforms\Exceptions\InvalidWebhookSignatureException;
+use Ingenius\Payforms\Exceptions\PaymentStatusConflictException;
+use Ingenius\Payforms\Exceptions\UnrecoverableCallbackException;
 use Ingenius\Payforms\Http\Controllers\PayFormDataController;
 use Ingenius\Payforms\Http\Controllers\PaymentTransactionController;
 use Ingenius\Payforms\Services\PayformsManager;
@@ -57,9 +60,22 @@ Route::middleware([
 
             try {
                 $payformInstance->commitPayment($request);
-            } catch (Exception $e) {
+            } catch (PaymentStatusConflictException $e) {
+                // Permanent: the transaction already reached a different final
+                // status. Acknowledge so the gateway stops redelivering.
+                Log::warning('Payment callback conflicts with current transaction status: ' . $e->getMessage());
+                return Response::api(__('Callback acknowledged, no action taken'));
+            } catch (InvalidWebhookSignatureException $e) {
                 Log::error($e->getMessage());
-                return Response::api(__('An error occurred'), 500);
+                return Response::api(__('Invalid webhook signature'), code: 400);
+            } catch (UnrecoverableCallbackException) {
+                // Permanent: the callback can never be matched to a transaction.
+                // Already logged at error level; acknowledge to stop redelivery.
+                return Response::api(__('Callback acknowledged, no action taken'));
+            } catch (Exception $e) {
+                // Unexpected: answer with a server error so the gateway retries.
+                Log::error($e->getMessage());
+                return Response::api(__('An error occurred'), code: 500);
             }
 
             return Response::api(__('Payment commited successfully'));

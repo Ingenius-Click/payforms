@@ -2,6 +2,7 @@
 
 namespace Ingenius\Payforms\Payforms;
 
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Ingenius\Core\Interfaces\HasFeature;
 use Ingenius\Core\Interfaces\IWithPayment;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use Ingenius\Core\Interfaces\FeatureInterface;
 use JsonSerializable;
 use Ingenius\Payforms\Enums\PaymentStatus;
+use Ingenius\Payforms\Exceptions\PaymentGatewayException;
 use Ingenius\Payforms\Exceptions\TransactionCreationException;
 use Ingenius\Payforms\Models\PayFormData;
 use Ingenius\Payforms\Models\PaymentTransaction;
@@ -32,6 +34,18 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
     protected string $sandboxKey = 'use_sandbox';
     protected array $currencies = [];
     protected ?int $expirationHours = null;
+
+    /**
+     * Seconds to wait while establishing a connection to the gateway.
+     * Null falls back to the payforms.http.connect_timeout config value.
+     */
+    protected ?float $connectTimeout = null;
+
+    /**
+     * Seconds to wait for the gateway to send a complete response.
+     * Null falls back to the payforms.http.timeout config value.
+     */
+    protected ?float $requestTimeout = null;
 
     /**
      * Constructor for AbstractPayForm
@@ -195,6 +209,25 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
     }
 
     /**
+     * Build an HTTP client for talking to the payment gateway.
+     *
+     * Always carries explicit timeouts: an unbounded request would hold the
+     * PHP worker (and any surrounding database transaction) open indefinitely
+     * whenever the gateway hangs instead of answering.
+     *
+     * @param array $options Extra Guzzle options merged over the defaults
+     * @return Client
+     */
+    protected function makeHttpClient(array $options = []): Client
+    {
+        return new Client([
+            'connect_timeout' => $this->connectTimeout ?? config('payforms.http.connect_timeout', 5),
+            'timeout' => $this->requestTimeout ?? config('payforms.http.timeout', 15),
+            ...$options,
+        ]);
+    }
+
+    /**
      * Create a transaction
      *
      * @param int $amount Amount to pay
@@ -218,13 +251,37 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
             $transaction->expires_at = $this->getExpirationHours() ? now()->addHours($this->getExpirationHours()) : null;
             $transaction->save();
 
-            $result = $this->handleCreateTransaction($transaction, $payable);
+            $result = $this->startPayment($transaction, $payable);
+        } catch (PaymentGatewayException $e) {
+            // Already classified as to whether a payment may exist remotely.
+            // Rethrow untouched so the caller can decide about compensating.
+            Log::error('Error creating transaction: ' . $e->getMessage());
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Error creating transaction: ' . $e->getMessage());
             throw new TransactionCreationException('Error creating transaction: ' . $e->getMessage());
         }
 
         return $result;
+    }
+
+    /**
+     * Ask the gateway to start the payment for an already recorded transaction.
+     *
+     * Split out of createTransaction() so callers that need the database write
+     * and the network call to happen at different times — notably order
+     * creation, which must not hold a transaction open across an HTTP request —
+     * can drive the two halves separately.
+     *
+     * @param PaymentTransaction $transaction A transaction already persisted as PENDING
+     * @param mixed $payable The model being paid for
+     * @return PaymentResponse What the customer needs in order to pay
+     *
+     * @throws PaymentGatewayException Classified as to whether a payment may exist remotely
+     */
+    public function startPayment(PaymentTransaction $transaction, $payable = null): PaymentResponse
+    {
+        return $this->handleCreateTransaction($transaction, $payable);
     }
 
     /**
@@ -237,6 +294,17 @@ abstract class AbstractPayForm implements Arrayable, Jsonable, JsonSerializable,
     public function commitPayment(Request $request)
     {
         $result = $this->handleCommitPayment($request);
+
+        // A redelivered callback returns the status the transaction already had.
+        // Acknowledge it without replaying the side effects on the payable.
+        if ($result && !$result->isNewTransition()) {
+            Log::info("Ignoring already applied payment status for payform {$this->id}", [
+                'transaction_id' => $result->payment_transaction_id,
+                'status' => $result->status->value,
+            ]);
+
+            return $result;
+        }
 
         if ($result && $result->status == PaymentStatus::APPROVED) {
             $paymentTransaction = $result->transaction;

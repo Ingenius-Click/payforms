@@ -29,4 +29,16 @@ class PaymentTransactionStatus extends Model
     {
         return $this->belongsTo(PaymentTransaction::class, 'payment_transaction_id');
     }
+
+    /**
+     * Whether this record represents a status the transaction just moved to,
+     * as opposed to one it already held.
+     *
+     * Callers use this to run side effects (transitioning the payable, sending
+     * notifications) exactly once even when a gateway redelivers a callback.
+     */
+    public function isNewTransition(): bool
+    {
+        return $this->wasRecentlyCreated;
+    }
 }

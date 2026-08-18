@@ -4,9 +4,16 @@ namespace Ingenius\Payforms\Payforms;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ServerException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Ingenius\Payforms\Exceptions\InvalidWebhookSignatureException;
+use Ingenius\Payforms\Exceptions\PaymentGatewayException;
+use Ingenius\Payforms\Exceptions\PaymentNotStartedException;
+use Ingenius\Payforms\Exceptions\PaymentOutcomeUnknownException;
+use Ingenius\Payforms\Exceptions\UnrecoverableCallbackException;
 use Ingenius\Payforms\Models\PaymentTransaction;
 use Ingenius\Payforms\Payforms\Responses\PaymentResponse;
 
@@ -98,7 +105,7 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
      */
     protected function refreshAccessToken(): string
     {
-        $client = new Client();
+        $client = $this->makeHttpClient();
 
         try {
             $response = $client->request('POST', $this->getArg('url') . $this->tokenEndpoint, [
@@ -113,7 +120,7 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
             $data = $data['data'] ?? [];
 
             if(!isset($data['access_token'])) {
-                throw new \Exception("Invalid token response from payment gateway hub.");
+                throw new PaymentNotStartedException("Invalid token response from payment gateway hub.");
             }
 
             // Cache the token with a buffer before expiration
@@ -124,8 +131,10 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
 
             return $data['access_token'];
         } catch (GuzzleException $e) {
+            // Authentication happens before the payment request is sent, so a
+            // failure here rules out any payment having been created.
             Log::error("Failed to refresh payment gateway hub token for payform {$this->id}: " . $e->getMessage());
-            throw new \Exception("Failed to authenticate with payment gateway hub: " . $e->getMessage());
+            throw new PaymentNotStartedException("Failed to authenticate with payment gateway hub: " . $e->getMessage());
         }
     }
 
@@ -149,19 +158,28 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
      * @param string $url The full request URL
      * @param array $payload The request payload
      * @param bool $isRetry Whether this is a retry attempt after token refresh
+     * @param string|null $idempotencyKey Key letting the hub collapse repeated attempts into one payment
      * @return array The decoded response data
      * @throws \Exception If the request fails after retry
      */
-    protected function makePaymentRequest(Client $client, string $url, array $payload, bool $isRetry = false): array
+    protected function makePaymentRequest(Client $client, string $url, array $payload, bool $isRetry = false, ?string $idempotencyKey = null): array
     {
         try {
+            $headers = [
+                'Authorization' => 'Bearer ' . $this->getAccessToken(),
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json'
+            ];
+
+            // Sent on every attempt, including retries, so the hub recognises a
+            // repeated request as the same payment rather than a new one.
+            if ($idempotencyKey) {
+                $headers['Idempotency-Key'] = $idempotencyKey;
+            }
+
             $response = $client->request('POST', $url, [
                 'body' => json_encode($payload, JSON_PRESERVE_ZERO_FRACTION),
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->getAccessToken(),
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/json'
-                ],
+                'headers' => $headers,
             ]);
 
             return json_decode($response->getBody(), true);
@@ -175,17 +193,52 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
                 $this->getAccessToken(); // This will refresh the token
 
                 // Retry the request once with the new token
-                return $this->makePaymentRequest($client, $url, $payload, true);
+                return $this->makePaymentRequest($client, $url, $payload, true, $idempotencyKey);
             }
 
-            // If it's already a retry or a different error, throw exception
+            // A 4xx means the hub refused the request outright: no payment was created.
             $errorMessage = $e->getResponse()->getBody()->getContents();
             Log::error("Payment gateway hub request failed for payform {$this->id}: {$errorMessage}");
-            throw new \Exception("Payment request failed: {$errorMessage}");
+            throw new PaymentNotStartedException("Payment request failed: {$errorMessage}");
+        } catch (ServerException $e) {
+            // The hub accepted the request and then failed. It may have created
+            // the payment before blowing up, so the outcome is unknown.
+            Log::error("Payment gateway hub server error for payform {$this->id}: " . $e->getMessage());
+            throw new PaymentOutcomeUnknownException("Payment request failed on the gateway: " . $e->getMessage());
+        } catch (ConnectException $e) {
+            throw $this->classifyConnectException($e);
         } catch (GuzzleException $e) {
+            // Anything left is unclassifiable; assume the request may have landed.
             Log::error("Payment gateway hub request error for payform {$this->id}: " . $e->getMessage());
-            throw new \Exception("Payment request error: " . $e->getMessage());
+            throw new PaymentOutcomeUnknownException("Payment request error: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Decide whether a connection-level failure ruled the payment out.
+     *
+     * cURL distinguishes "never got there" (DNS failure, refused connection)
+     * from "gave up waiting" (timeout). Only the former proves no payment was
+     * created; a timeout may have been preceded by a request the gateway
+     * processed, so it is treated as unknown.
+     *
+     * @param ConnectException $e
+     * @return PaymentGatewayException
+     */
+    protected function classifyConnectException(ConnectException $e): PaymentGatewayException
+    {
+        $errno = $e->getHandlerContext()['errno'] ?? null;
+
+        // CURLE_COULDNT_RESOLVE_PROXY / _HOST / CURLE_COULDNT_CONNECT
+        $neverReached = [5, 6, 7];
+
+        if (in_array($errno, $neverReached, true)) {
+            Log::error("Payment gateway hub unreachable for payform {$this->id}: " . $e->getMessage());
+            return new PaymentNotStartedException("Payment gateway unreachable: " . $e->getMessage());
+        }
+
+        Log::error("Payment gateway hub did not answer for payform {$this->id}: " . $e->getMessage());
+        return new PaymentOutcomeUnknownException("Payment gateway did not answer: " . $e->getMessage());
     }
 
     /**
@@ -265,14 +318,14 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
      */
     protected function handleCreateTransaction(PaymentTransaction $transaction, $payable = null): PaymentResponse
     {
-        $client = new Client();
+        $client = $this->makeHttpClient();
         $url = $this->getArg('url') . $this->paymentEndpoint;
 
         // Build the payment payload (implemented by child class)
         $payload = $this->buildPaymentPayload($transaction, $payable);
 
         // Make authenticated request to gateway hub
-        $responseData = $this->makePaymentRequest($client, $url, $payload);
+        $responseData = $this->makePaymentRequest($client, $url, $payload, false, $transaction->getIdempotencyKey());
 
         // Process the response and return appropriate PaymentResponse (implemented by child class)
         return $this->processPaymentResponse($responseData, $transaction);
@@ -328,7 +381,7 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
         // Verify webhook signature
         if (!$this->verifyWebhookSignature($request)) {
             Log::error("Invalid webhook signature for payform: {$this->id}");
-            throw new \Exception('Invalid webhook signature');
+            throw new InvalidWebhookSignatureException('Invalid webhook signature');
         }
 
         // Extract transaction data from request
@@ -337,7 +390,7 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
 
         if (!$transactionId) {
             Log::error('Missing transaction_id in webhook request');
-            throw new \Exception('Missing transaction_id');
+            throw new UnrecoverableCallbackException('Missing transaction_id');
         }
 
         // Find the transaction
@@ -345,7 +398,7 @@ abstract class AbstractPaymentGatewayHubClientPayForm extends AbstractPayForm
 
         if (!$transaction) {
             Log::error("Transaction not found: {$transactionId}");
-            throw new \Exception("Transaction not found: {$transactionId}");
+            throw new UnrecoverableCallbackException("Transaction not found: {$transactionId}");
         }
 
         // Only process if status is 'paid'
